@@ -1,120 +1,163 @@
-
 const canvas = document.querySelector('canvas');
-//fornece o contexto ctx = área de desenho
 const ctx = canvas.getContext('2d');
-//altura e largura do canvas igual do navegador
+
 const width = canvas.width = window.innerWidth;
 const height = canvas.height = window.innerHeight;
 
-//retorna um número aleatório a partir de 2 números
+let para = document.querySelector('p');
+let count = 50;
+
 function random(min, max) {
   const num = Math.floor(Math.random() * (max - min + 1)) + min;
   return num;
 }
 
-//construtor de bolas
 function Shape(x, y, velX, velY,exists) {
-    //coordenadas do spaw da bola na tela
     this.x = x;
     this.y = y;
-    //velocidade vertica/horizontal da bola
     this.velX = velX;
     this.velY = velY;
-    this.exists=exists;
-    
-  }
-function Ball(x, y, velX, velY, exists,color, size) {
-    //coordenadas do spaw da bola na tela
+    this.exists = exists;    
+}
 
+function Ball(x, y, velX, velY, exists,color, size) {
     Shape.call(this,x, y, velX, velY,exists);
-    //cor
     this.color = color;
-    //tamanho do raio em px
     this.size = size;
-  }
-  function EvilCircle(x,y,velX,velY,exists,color,size){
-    Shape.call(this,x,y,20,20,exists);
-    this.color = 'white';
-    this.size = 10;
-  }
-  
+}
+
+function EvilCircle(x,y,velX,velY,exists,color,size){
+  Shape.call(this,x,y,20,20,exists);
+  this.color = 'white';
+  this.size = 10;
+}
+
   Ball.prototype = Object.create(Shape.prototype);
   EvilCircle.prototype = Object.create(Shape.prototype);
   
-  //protótipo(métodos) de desenho da bola
-  //declaração para desenhar      
+  Object.defineProperty(Ball.prototype, 'constructor', {
+    value: Ball,
+    enumerable: false, // so that it does not appear in 'for in' loop
+    writable: true 
+});
+  Object.defineProperty(EvilCircle.prototype, 'constructor', {
+    value: EvilCircle,
+    enumerable: false, // so that it does not appear in 'for in' loop
+    writable: true 
+});
+
   Ball.prototype.draw = function() {
     ctx.beginPath();
-    //define a cor da forma
     ctx.fillStyle = this.color;
-    //traça a forma do arco(coordenadas do lugar(x,y),raio(size),inicio e fim em graus do raio(somente em radianos)
     ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
-    //terminar de desenhar desde beginPath() e preencher toda a área com a cor fillStyle
     ctx.fill();
+  }
+
+  EvilCircle.prototype.draw = function(){
+    ctx.beginPath();
+    ctx.strokeStyle = this.color;
+    ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+    ctx.lineWidth = 3;
+    ctx.stroke();
   }
  
   Ball.prototype.update = function() {
-  //se posição horizontal + tamanho for maior ou igual que largura da tela
     if ((this.x + this.size) >= width) {
-  //velocidade horizontal = velocidade horizontal negativa
       this.velX = -(this.velX);
     }
-  //se posição horizontal - tamanho for menor ou igual a zero
     if ((this.x - this.size) <= 0) {
-  //velocidade horizontal = velocidade horizontal negativa
       this.velX = -(this.velX);
     }
-  //se posição vertical + tamanho for maior ou igual a altura da tela
     if ((this.y + this.size) >= height) {
-        //velocidade vertical = velocidade vertical negativa
       this.velY = -(this.velY);
     }
-  //se posição vertical - tamanho for menor ou igual a zero
     if ((this.y - this.size) <= 0) {
-  //velocidade vertical = velocidade vertical negativa
       this.velY = -(this.velY);
     }
-    //posição horizontal = posição horizontal + velocidade horizontal
     this.x += this.velX;
   
-    //posição vertical = posição vertical + velocidade vertical
     this.y += this.velY;
-  }
-// alterar o valor de x/y para que o círculo maligno seja devolvido na tela um pouco. Adicionar ou subtrair (conforme apropriado) a propriedade size do círculo maligno faria sentido.
 
+  }
+EvilCircle.prototype.checkBounds = function(){
+  if((this.x + this.size) >= width){
+    this.x=width-this.size;
+  }
+  if((this.x - this.size) <= 0){
+    this.x = 0+this.size;
+  }
+  if((this.y + this.size) >= height){
+    this.y = height-this.size;
+  }
+  if((this.y - this.size)<=0){
+ this.y = 0+this.size;
+  }
+}
  
+let balls = [];
+
+EvilCircle.prototype.setControls = function(){
+  var _this = this;
+  window.onkeydown = function(e){
+    if(e.keyCode === 65){
+      _this.x -= _this.velX;
+    }else if(e.keyCode === 68){
+      _this.x += _this.velX;
+    }else if(e.keyCode === 87){
+      _this.y -= _this.velY;
+    }else if(e.keyCode === 83){
+      _this.y += _this.velY;
+    }
+  }
+}
+
   Ball.prototype.collisionDetect = function() {
     for (let j = 0; j < balls.length; j++) {
-      //testa para ver se a bola do método que chamou este método são diferentes
         if (!(this === balls[j])) {
-            //ve se uma bola se sobrepõe a outra
         const dx = this.x - balls[j].x;
         const dy = this.y - balls[j].y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-  //se houver a colisão, alterar a cor das bolas
-        if (distance < this.size + balls[j].size) {
+        const distance = Math.sqrt(dx * dx + dy * dy);//?
+        if (distance < this.size + balls[j].size && balls[j].exists == true) {
           balls[j].color = this.color = 'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) +')';
         }
       }
     }
   }
-//array para colocar as bolas, uui
-  let balls = [];
 
-  //loop de animação
+ EvilCircle.prototype.collisionDetect = function(){
+   for(let k=0;k<balls.length;k++){
+     if(balls[k].exists==true){
+       const dxx = this.x - balls[k].x;
+       const dyy = this.y - balls[k].y;
+       const ddistance = Math.sqrt(dxx*dxx+dyy*dyy);
+       if(ddistance < this.size + balls[k].size){ 
+        balls[k].color = `rgba( ${0},${0},${0},${0})`;
+        balls[k].exists = false;
+        count --;
+       }
+     }
+   }
+ }
+ let ec = new EvilCircle(      
+  random( 0 + 10,width -10),
+  random(0+10,width -10),
+  20,
+  20,
+  true,
+  'white',
+  10
+);
+
+ec.setControls();
+
   function loop() {
-  //define cor da tela
     ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-  //desenha um retângulo
     ctx.fillRect(0, 0, width, height);
-
-    //cria as bolas e coloca dentro da array
+    
     while (balls.length < 50) {
       let size = random(10,20);
       let exists = true;
       let ball = new Ball(
-        // ball position always drawn at least one ball width
-        // away from the edge of the canvas, to avoid drawing errors
         random(0 + size,width - size),
         random(0 + size,height - size),
         random(-7,7),
@@ -125,15 +168,22 @@ function Ball(x, y, velX, velY, exists,color, size) {
       );
       balls.push(ball);
     }
-  //cria o efeito em cada bola
-    for (let i = 0; i < balls.length; i++) {
-      balls[i].draw();
-      balls[i].update();
-      balls[i].collisionDetect();
-    }
-  //faz a função ser repetida diversas vezes
-    requestAnimationFrame(loop);
-  }
-  //chama a função
-  loop();
 
+   for (let i = 0; i < balls.length; i++) {
+    
+    if(balls[i].exists== true){
+        balls[i].draw();
+        balls[i].update();
+        balls[i].collisionDetect();
+        
+      }
+    }
+    
+    requestAnimationFrame(loop);
+    ec.draw();
+    ec.checkBounds();
+    ec.collisionDetect();
+    para.textContent=`Contagem de bolas: ${count}`;
+  
+  }
+ loop();
